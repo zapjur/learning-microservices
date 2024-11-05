@@ -5,7 +5,7 @@
 .env
 .DS_Store
 broker-app
-frontend-app
+front-app
 auth-app
 /project/db-data/postgres/
 

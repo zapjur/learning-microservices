@@ -15,29 +15,19 @@ func (app *Config) authenticate(w http.ResponseWriter, r *http.Request) {
 
 	err := app.readJSON(w, r, &requestPayload)
 	if err != nil {
-		err = app.writeError(w, err, http.StatusBadRequest)
-		if err != nil {
-			log.Println(err)
-		}
+		app.logAndWriteError(w, err, http.StatusBadRequest)
 		return
 	}
 
 	user, err := app.Models.User.GetByEmail(requestPayload.Email)
 	if err != nil {
-		err = app.writeError(w, errors.New("invalid credentials"), http.StatusUnauthorized)
-		if err != nil {
-			log.Println(err)
-		}
+		app.logAndWriteError(w, errors.New("invalid credentials"), http.StatusUnauthorized)
 		return
 	}
 
 	valid, err := user.PasswordMatches(requestPayload.Password)
-
 	if err != nil || !valid {
-		err = app.writeError(w, errors.New("invalid credentials"), http.StatusUnauthorized)
-		if err != nil {
-			log.Println(err)
-		}
+		app.logAndWriteError(w, errors.New("invalid credentials"), http.StatusUnauthorized)
 		return
 	}
 
@@ -47,9 +37,19 @@ func (app *Config) authenticate(w http.ResponseWriter, r *http.Request) {
 		Data:    user,
 	}
 
-	err = app.writeJSON(w, http.StatusAccepted, payload)
+	if err = app.writeJSON(w, http.StatusAccepted, payload); err != nil {
+		log.Println(err)
+	}
+}
+
+func (app *Config) logAndWriteError(w http.ResponseWriter, err error, statusCodes ...int) {
+	log.Println(err)
+	statusCode := http.StatusBadRequest
+	if len(statusCodes) > 0 {
+		statusCode = statusCodes[0]
+	}
+	err = app.writeError(w, err, statusCode)
 	if err != nil {
 		log.Println(err)
-		return
 	}
 }
