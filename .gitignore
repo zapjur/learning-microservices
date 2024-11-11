@@ -9,8 +9,10 @@ front-app
 auth-app
 mailer-app
 logger-app
+listener-app
 /project/db-data/postgres/
 /project/db-data/mongo/
+/project/db-data/rabbitmq/
 
 ### GoLand ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
