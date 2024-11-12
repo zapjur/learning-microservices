@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/rpc"
 )
 
 type RequestPayload struct {
@@ -56,11 +57,46 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 		app.authenticate(w, requestPayload.Auth)
 	case "log":
 		//app.logItem(w, requestPayload.Log) communicating via api
-		app.logEventViaRabbit(w, requestPayload.Log)
+		//app.logEventViaRabbit(w, requestPayload.Log) communicating via rabbitmq
+		app.logItemViaRPC(w, requestPayload.Log) // communicating via rpc
 	case "mail":
 		app.sendMail(w, requestPayload.Mail)
 	default:
 		app.logAndWriteError(w, errors.New("invalid action"))
+	}
+}
+
+type RPCPayload struct {
+	Name string
+	Data string
+}
+
+func (app *Config) logItemViaRPC(w http.ResponseWriter, l LogPayload) {
+	client, err := rpc.Dial("tcp", "logger-service:5001")
+	if err != nil {
+		app.logAndWriteError(w, err)
+		return
+	}
+	rpcPayload := RPCPayload{
+		Name: l.Name,
+		Data: l.Data,
+	}
+
+	var result string
+	err = client.Call("RPCServer.LogInfo", rpcPayload, &result)
+	if err != nil {
+		app.logAndWriteError(w, err)
+		return
+	}
+
+	payload := jsonResponse{
+		Error:   false,
+		Message: result,
+	}
+
+	if err = app.writeJSON(w, http.StatusAccepted, payload); err != nil {
+		app.logAndWriteError(w, err)
+		return
 	}
 }
 
